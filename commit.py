@@ -1,148 +1,137 @@
-# Upload 172
-
-
 import datetime
+import logging
 import os
 import random
 import shutil
 import string
-import sys
+
+import utils
+import errors
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
 
 
-import P171_add as add
-
-
-class ReferenceFileError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-    def __str__(self) -> str:
-        return f"The reference file found is improperly formatted. {self.message}"
+def remove_commit_folder(paths: utils.Paths, commit_id: str) -> None:
+    log.info(f"Removing commit folder {commit_id} due to previous error")
+    commit_path = os.path.join(paths.images, commit_id)
+    try:
+        shutil.rmtree(commit_path)
+    except OSError:
+        log.error(f"Unable to remove the problematic commit folder, commit id {commit_id}")
+        return
+    log.info(f"Successfully removed the commit folder {commit_id}")
 
 
 def create_commit_id() -> str:
+    log.info("Creating new commit id")
     return "".join(random.choice(string.hexdigits) for _ in range(40))
 
 
-def create_commit_folder(wit_path: str) -> str:
+def create_commit_folder(paths: utils.Paths) -> str:
+    log.info("Creating new commit folder")
     commit_id = create_commit_id()
-    commit_path = os.path.join(wit_path, "images", commit_id)
-    source_path = os.path.join(wit_path, "staging_area")
-    shutil.copytree(source_path, commit_path)
+    log.info("New commit id created")
+    commit_path = os.path.join(paths.images, commit_id)
+    log.debug("Copying content into new commit folder")
+    try:
+        shutil.copytree(paths.staging, commit_path)
+    except OSError:
+        log.exception("Copying staging area content into new commit folder failed.")
+        if os.path.isdir(commit_path):
+            log.info("Removing new commit folder as copying failed")
+            remove_commit_folder(paths, commit_id)
+        return
+    log.info("Copying staging area content into new commit folder successful")
     return commit_id
 
 
-def create_commit_meta_data(
-    wit_path: str, references_path: str, commit_id: str, message: str
-) -> None:
+def create_commit_meta_data(paths: utils.Paths, commit_id: str, message: str) -> bool:
+    log.info("Creating new commit meta data file")
     creation_time = datetime.datetime.now()
     formatted_creation_time = creation_time.strftime("%a %b %d %H:%M:%S %Y %z")
-    parent = get_reference_id(references_path)
+    try:
+        parent = utils.get_reference_id(paths)
+    except errors.ReferenceFileError:
+        log.critical("Corrupted references file")
+        remove_commit_folder(paths, commit_id)
+        return False
+    except errors.MissingBranchError:
+        log.exception("Unable to retrieve the parent commit id as branch not found")
+        remove_commit_folder(paths, commit_id)
+        return False
     message = (
         f"parent={parent}\n" f"date={formatted_creation_time}\n" f"message={message}\n"
     )
-    commit_file_path = os.path.join(wit_path, "images", f"{commit_id}.txt")
-    with open(commit_file_path, "w") as commit_file:
-        commit_file.write(message)
+    commit_file_path = os.path.join(paths.images, f"{commit_id}.txt")
+    try:
+        with open(commit_file_path, "w") as commit_file:
+            commit_file.write(message)
+    except OSError:
+        log.exception("Unable to create commit metadata file")
+        remove_commit_folder(paths, commit_id)
+        return False
+    return True
 
 
-def get_reference_id(references_path: str, id_type: str = "HEAD") -> str | None:
-    if not os.path.isfile(references_path):
-        return
-    with open(references_path, "r") as references_file:
-        references = references_file.read().split()
-    if len(references) < 2:
-        raise ReferenceFileError("The reference file must have at least 2 lines.")
-    if "HEAD=" not in references[0]:
-        raise ReferenceFileError(
-            "The first line of the reference file must be of the format: HEAD=commit_id"
-        )
-    if "master=" not in references[1]:
-        raise ReferenceFileError(
-            "The second line of the reference file must be of the format: master=commit_id"
-        )
-    for reference in references:
-        if id_type.upper() in reference.upper():
-            return reference.split("=")[1]
-    raise ValueError(
-        f"The given branch name, {id_type}, does not exist in references.txt"
-    )
+def get_active_branch(paths: utils.Paths) -> str | None:
+    try:
+        with open(paths.active, "r") as active_file:
+            return active_file.read()
+    except OSError:
+        log.exception("Unable to retrieve the active branch.")
 
 
-def get_active_branch(wit_path: str) -> str:
-    active_path = os.path.join(wit_path, "activated.txt")
-    with open(active_path, "r") as active_file:
-        active = active_file.read()
-    return active
-
-
-def create_new_references(
-    references_path: str, head_commit_id: str, branch_name: str
-) -> None:
-    references = f"HEAD={head_commit_id}\n" f"{branch_name}={head_commit_id}\n"
-    with open(references_path, "w") as references_file:
-        references_file.write(references)
-
-
-def update_reference_head(head_reference_line: str, commit_id: str) -> str:
-    if "HEAD=" not in head_reference_line:
-        raise ReferenceFileError(
-            "The first line of the reference file must be of the format: HEAD=commit_id"
-        )
-    return f"HEAD={commit_id}"
-
-
-def update_reference_branch(
-    references: list[str], branch: str, commit_id: str
-) -> list[str]:
-    new_references = [update_reference_head(references[0], commit_id)]
-    for reference in references[1:]:
-        if branch in reference:
-            new_references.append(f"{branch}={commit_id}")
-        else:
-            new_references.append(reference)
-    return new_references
-
-
-def check_current_commit_ids_match(references_path: str, branch_name: str) -> None:
-    current_head_id = get_reference_id(references_path, "HEAD")
-    current_branch_id = get_reference_id(references_path, branch_name)
+def check_current_commit_ids_match(paths: utils.Paths, branch_name: str) -> bool:
+    log.info("Checking if the branch id matches the HEAD id")
+    try:
+        current_head_id = utils.get_reference_id(paths, "HEAD")
+    except (errors.ReferenceFileError, errors.MissingBranchError):
+        log.critical("Corrupted references file")
+        return False
+    try:
+        current_branch_id = utils.get_reference_id(paths, branch_name)
+    except errors.ReferenceFileError:
+        log.critical("Corrupted references file")
+        return False
+    except errors.MissingBranchError:
+        log.exception(f"Unable to retrieve the {branch_name} commit id as branch not found")
+        return False
     if current_head_id != current_branch_id:
-        raise ValueError(
+        log.error(
             "The current HEAD commit id does not match the active branch, {branch_name}, id."
         )
-
-
-def update_references(
-    references_path: str, head_commit_id: str, branch_name: str
-) -> None:
-    if not os.path.isfile(references_path):
-        create_new_references(references_path, head_commit_id, branch_name)
-        return
-    with open(references_path, "r") as references_file:
-        current_references = references_file.read().split()
-    new_references = update_reference_branch(
-        current_references, branch_name, head_commit_id
-    )
-    with open(references_path, "w") as references_file:
-        references_file.write("\n".join(new_references))
+        return False
+    log.info("The branch id matches the HEAD id")
+    return True
 
 
 def commit(commit_message: str) -> None:
-    wit_path = add.get_wit_path(os.getcwd())
-    references_path = os.path.join(wit_path, "references.txt")
-    commit_id = create_commit_folder(wit_path)
-    create_commit_meta_data(wit_path, references_path, commit_id, commit_message)
-    branch_name = get_active_branch(os.path.dirname(references_path))
-    if branch_name == "None":
-        branch_name = "HEAD"
-    check_current_commit_ids_match(references_path, branch_name)
-    update_references(references_path, commit_id, branch_name)
+    try:
+        paths = utils.get_paths()
+    except errors.WitDirectoryNotFoundError:
+        log.error(
+            "Unable to find a wit repository in any of the parent folders of the current working directory"
+            )
+        return
+    commit_id = create_commit_folder(paths)
+    if commit_id is None:
+        return
+    if not create_commit_meta_data(paths, commit_id, commit_message):
+        return
+    branch_name = get_active_branch(paths)
+    if branch_name is None:
+        remove_commit_folder(paths, commit_id)
+        return
+    if branch_name != "None":
+        if not check_current_commit_ids_match(paths, branch_name):
+            remove_commit_folder(paths, commit_id)
+            return
+    if not utils.update_references(paths, commit_id, branch_name):
+        remove_commit_folder(paths, commit_id)
 
-
-if len(sys.argv) >= 2:
-    if sys.argv[1] == "commit":
-        commit(sys.argv[2])
-
-
-# commit('testing_branch_changes')
