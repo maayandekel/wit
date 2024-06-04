@@ -44,7 +44,7 @@ def copy_path(source_path: str, destination_path: str, wit_path: str) -> None:
     for item in os.listdir(source_path):
         source_item_path = os.path.join(source_path, item)
         destination_item_path = os.path.join(destination_path, item)
-        if os.path.isdir(source_item_path): #and source_item_path != wit_path:
+        if os.path.isdir(source_item_path) and source_item_path != wit_path:
             log.debug(f"Copying all files in {source_item_path}")
             copy_path(source_item_path, destination_item_path, wit_path)
         if os.path.isfile(source_item_path):
@@ -53,7 +53,7 @@ def copy_path(source_path: str, destination_path: str, wit_path: str) -> None:
     log.info("Successfully finished copying into the staging area")
 
 
-def add(item_to_add: str) -> None:
+def add(item_to_add: str) -> None | bool:
     full_path_item = os.path.abspath(os.path.expanduser(item_to_add))
     directory_path = get_directory_path(full_path_item)
     try:
@@ -61,12 +61,13 @@ def add(item_to_add: str) -> None:
     except errors.WitDirectoryNotFoundError:
         log.error(
             "Unable to find a wit repository in any of the parent folders of the given item path, {directory_path}"
-            )
+        )
         return
     destination_path = find_staging_area_path(full_path_item, paths)
     log.info("Copying the source file(s) and folder(s) into the staging area")
     try:
-        copy_path(full_path_item, destination_path, os.path.dirname(destination_path))
+        copy_path(full_path_item, destination_path, paths.wit)
     except OSError as err:
         log.exception("Copying of at least one file failed.")
         raise err
+    return True

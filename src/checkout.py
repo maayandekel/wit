@@ -3,8 +3,8 @@ import os
 import shutil
 
 import errors
-import utils
 import status
+import utils
 
 
 log = logging.getLogger(__name__)
@@ -123,13 +123,13 @@ def update_active_branch(active_path: str, branch_name: str) -> None:
     log.info("Finished updating the active branch")
 
 
-def checkout(commit_name: str) -> None:
+def checkout(commit_name: str) -> str | None:
     try:
         paths = utils.get_paths()
     except errors.WitDirectoryNotFoundError:
         log.error(
             "Unable to find a wit repository in any of the parent folders of the given item path, {directory_path}"
-            )
+        )
         return
     commit_info = get_checkout_commit_info(paths, commit_name)
     if commit_info is None:
@@ -149,4 +149,5 @@ def checkout(commit_name: str) -> None:
         log.critical("Unable to update references.txt after performing checkout")
         return
     update_active_branch(paths.active, commit_name)
+    return commit_id
 

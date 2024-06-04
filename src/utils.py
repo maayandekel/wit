@@ -54,19 +54,19 @@ def get_paths(path: str | None = None, wit_exist: bool = True) -> Paths:
     references = os.path.join(wit_path, 'references.txt')
     log.info("Finished getting basic wit paths")
     return Paths(
-        cwd = cwd,
-        wit = wit_path,
-        wit_dir = wit_dir,
-        images = images,
-        staging = staging,
-        active = active,
-        references = references,
+        cwd=cwd,
+        wit=wit_path,
+        wit_dir=wit_dir,
+        images=images,
+        staging=staging,
+        active=active,
+        references=references,
     )
 
 
-def get_reference_id(paths: Paths, id_type: str = "HEAD") -> str | None:
+def check_reference_file(paths: Paths) -> bool:
     if not os.path.isfile(paths.references):
-        return
+        return False
     with open(paths.references, "r") as references_file:
         references = references_file.read().split()
     if len(references) < 2:
@@ -79,6 +79,14 @@ def get_reference_id(paths: Paths, id_type: str = "HEAD") -> str | None:
         raise errors.ReferenceFileError(
             "The second line of the reference file must be of the format: master=commit_id"
         )
+    return True
+
+
+def get_reference_id(paths: Paths, id_type: str = "HEAD") -> str | None:
+    if not check_reference_file(paths):
+        return
+    with open(paths.references, "r") as references_file:
+        references = references_file.read().split()
     for reference in references:
         if id_type.upper() in reference.upper():
             return reference.split("=")[1]
@@ -134,9 +142,9 @@ def create_new_references(
 ) -> bool:
     log.info("Creating new references file")
     references = (
-            f"HEAD={head_commit_id}\n"
-            f"master={head_commit_id}\n"
-        )
+        f"HEAD={head_commit_id}\n"
+        f"master={head_commit_id}\n"
+    )
     if branch_name.lower() != 'master':
         log.warning(f"The first commit should be made to the master branch and not {branch_name}")
         references += f"{branch_name}={head_commit_id}\n"
@@ -181,3 +189,27 @@ def update_references(
         return False
     log.info("Updated references.txt successfully")
     return True
+
+
+def get_branches(paths: Paths):
+    if not check_reference_file(paths):
+        return
+    with open(paths.references, "r") as references_file:
+        references = references_file.read().split()
+    return [reference.split("=")[0] for reference in references[1:]]
+        
+
+def get_active_branch(paths: Paths) -> str:
+    with open(paths.active, "r") as active_file:
+        return active_file.read()
+    
+
+def get_directory_files(directory: str, parent_path: str | None = None) -> list[str]:
+    if parent_path is None:
+        parent_path = directory
+    all_files = []
+    for path, folders, files in os.walk(directory):
+        for file in files:
+            partial_path = os.path.abspath(os.path.relpath(path, directory))
+            all_files.append(os.path.join(parent_path, partial_path, file))
+    return all_files

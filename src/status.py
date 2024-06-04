@@ -35,7 +35,7 @@ def status() -> StatusTuple:
     except errors.WitDirectoryNotFoundError:
         log.error(
             "Unable to find a wit repository in any of the parent folders of the current working directory"
-            )
+        )
         return
     current_commit_info = get_current_commit_info(base_paths)
     if current_commit_info is None:
@@ -103,7 +103,7 @@ def compare_directories(
         error=errors, 
         only_dir1=only_dir1, 
         only_dir2=only_dir2,
-        )
+    )
 
 
 def get_subdirs(
@@ -180,7 +180,7 @@ def remove_from_staging(relative_file_path: str) -> None:
     except errors.WitDirectoryNotFoundError:
         log.error(
             "Unable to find a wit repository in any of the parent folders of the current working directory"
-            )
+        )
         return
     file_staging_path = os.path.join(paths.staging, relative_file_path)
     try:
@@ -190,6 +190,7 @@ def remove_from_staging(relative_file_path: str) -> None:
         return
     log.info("Successfully removed file from staging area")
 
-os.chdir(r"C:\Python Course\week10\Problem sets\test")
-curr_stat = status()
-print(status_message(*curr_stat))
+
+def run_status() -> None:
+    current_status = status.status()
+    print(status.status_message(*current_status))

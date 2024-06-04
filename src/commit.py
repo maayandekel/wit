@@ -5,8 +5,8 @@ import random
 import shutil
 import string
 
-import utils
 import errors
+import utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -117,7 +117,7 @@ def commit(commit_message: str) -> str | None:
     except errors.WitDirectoryNotFoundError:
         log.error(
             "Unable to find a wit repository in any of the parent folders of the current working directory"
-            )
+        )
         return
     commit_id = create_commit_folder(paths)
     if commit_id is None:
