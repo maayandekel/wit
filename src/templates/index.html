@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Wit Status</title>
+        <link href="../static/css/style.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <h1>Welcome to Wit!</h1>
+        <div><h2>The current commit id is: </h2>{{commit_id}}</div>
+        <div class="status">
+            <div class="status-element">
+            {% if to_commit %}
+            <h2>The following files are staged for the next commit: </h2>
+            <ul> 
+                {% for commit_file in to_commit %} 
+                <li class="file-list" id="files-to-commit">{{ commit_file }}</li> 
+                {% endfor %} 
+            </ul> 
+            {% endif %}
+            </div>
+            <div class="status-element">
+            {% if unstaged %}
+            <h2>The following files are not staged for commit: </h2>
+            <ul> 
+                {% for unstaged_file in unstaged %} 
+                <li class="file-list" id="files-unstaged">
+                    <form action="/add" method="post">
+                    {{ unstaged_file }}
+                    <input type="hidden" name="file_path" value="{{unstaged_file}}">
+                    <button class="btn">Add</button>
+                    </form>
+                </li>
+                {% endfor %} 
+            </ul> 
+            {% endif %}
+            </div>
+            <div class="status-element">
+            {% if untracked %}
+            <h2>The following files are untracked: </h2>
+            <ul> 
+                {% for untracked_file in untracked %} 
+                <li class="file-list" id="files-untracked">
+                    <form action="/add" method="post">
+                    {{ untracked_file }}
+                    <input type="hidden" name="file_path" value="{{untracked_file}}">
+                    <button class="btn">Add</button>
+                    </form>
+                </li>
+                {% endfor %} 
+            </ul> 
+            {% endif %}
+            </div>
+        </div>
+        <div>
+            <h2>Commit: </h2>
+            <form action="/commit" method="POST">
+                <label>Commit message: 
+                <input type="text" name="commit_message">
+                </label>
+                <button type="submit" class="btn">Commit</button>
+            </form>
+        </div>
+        <div><a href="/branches">View branches</a></div>
+    </body>
+</html>

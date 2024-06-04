@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Wit Branches</title>
+        <link href="../static/css/style.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <h1>Branches</h1>
+        <h2>The existing branches: </h2>
+        <ul> 
+            <li>
+                <form action="/checkout" method="post">
+                    <input type="hidden" name="branch_name" value="{{active_branch}}">
+                    <button class="btn" id="active-branch">{{active_branch}}</button>
+                </form>
+            </li>
+            {% if inactive_branches %}
+            {% for branch in inactive_branches %} 
+            <li>
+                <form action="/checkout" method="post">
+                    <input type="hidden" name="branch_name" value="{{branch}}">
+                    <button class="btn">{{branch}}</button>
+                </form>
+            </li>
+            {% endfor %} 
+            {% endif %}
+        </ul> 
+        <h2>Add new branch:</h2>
+        <form action="/newbranch" method="POST">
+            <label>The new branch name: 
+            <input type="text" name="new_name">
+            </label>
+            <button type="submit" class="btn">Create</button>
+        </form>
+        <div><a href="/">Return to home page</a></div>
+    </body>
+</html>

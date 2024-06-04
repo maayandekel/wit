@@ -1,0 +1,94 @@
+html {
+    font-size: 1em;
+}
+h1 {
+    background: rgb(35,1,68);
+    background: linear-gradient(145deg, rgba(35,1,68,1) 0%, rgba(106,12,159,1) 35%, rgba(250,147,255,1) 100%);
+    border: 3px solid midnightblue;
+    border-radius: 2em;
+    padding: 20px;
+    color: whitesmoke;
+    text-align: center;
+    text-shadow: 2px 2px 2px rgb(35,1,68);
+    font-size: 3rem;
+}
+h2 {
+    color: rebeccapurple;
+    font-size: 1.3rem;
+    padding: 2px;
+}
+h3 {
+    color: rebeccapurple;
+    font-size: 1rem;
+}
+ul {
+    font-size: 0.7rem;
+    font-family: Arial, Helvetica, sans-serif;
+    list-style-type:circle;
+}
+li::marker {
+    color: rebeccapurple;
+  }
+.file-list {
+    color:blanchedalmond;
+    background-color:rebeccapurple;
+    border: 1px solid rgb(35,1,68);
+    padding: 2.5px;
+}
+#files-to-commit {
+    border: 2px solid lawngreen;
+}
+#files-unstaged {
+    border: 2px solid gold;
+}
+#files-untracked {
+    border: 2px solid orange;
+}
+.btn {
+    transition-duration: 0.4s;
+    background-color:lavender;
+    color:blueviolet;
+    text-align: center;
+    border-radius: 1em;
+}  
+.btn:hover {
+    background-color: blueviolet;
+    color: lavender;
+    box-shadow: 1px 1px 2px black;
+}
+form input {
+    border: 1.5px solid midnightblue;
+    background-color:plum;
+    margin: 5px;
+}
+#branchname {
+    font-style: italic;
+}
+#active-branch {
+    background-color:aqua;
+    color:darkblue;
+    border: 2px solid blueviolet;
+}
+.status {
+    display: flex;
+}
+.status-element {
+    margin: 5px;
+}
+a:link {
+    color: blue;
+}
+a:visited {
+    color: purple;
+}
+a:focus,
+a:hover {
+    background-color:rebeccapurple;
+    color: whitesmoke;
+    border-bottom: 1px solid;
+}
+a:active {
+    background-color: fuchsia;
+    color: whitesmoke;
+}
+  

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Checkout Branch</title>
+        <link href="../static/css/style.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <h1>Checkout</h1>
+        <h2>Branch <span id="branchname">{{ branch }}</span> has been checked out </h2>
+        {% if branch_files %}
+        <h3>The branch contains the following files:</h3>
+        <ul>
+        {% for branch_file in branch_files %} 
+            <li class="file-list">{{ branch_file }}</li>
+            {% endfor %} 
+        </ul> 
+        {% endif %}
+        <div><a href="/">Return to home page</a></div>
+    </body>
+</html>
